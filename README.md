@@ -153,20 +153,34 @@ src/
 │
 ├── users/
 │   ├── users.controller.ts
+│   ├── users.module.ts
+│   ├── users.schema.ts
+│   ├── users.service.spec.ts
 │   ├── users.service.ts
 │   └── dtos/
 │
 ├── rewards/
-│   ├── rewards.controller.ts
-│   ├── rewards.service.ts
+│ ├── rewards.controller.ts
+│ ├── rewards.module.ts
+│ ├── rewards.schema.ts
+│ ├── rewards.service.spec.ts
+│ ├── rewards.service.ts
+│ └── dtos/
 │
 ├── redemptions/
-│   ├── redemptions.controller.ts
-│   ├── redemptions.service.ts
+│ ├── redemptions.controller.ts
+│ ├── redemptions.module.ts
+│ ├── redemptions.schema.ts
+│ ├── redemptions.service.spec.ts
+│ ├── redemptions.service.ts
+│ └── dtos/
 │
 ├── transactions/
-│   ├── transactions.controller.ts
-│   ├── transactions.service.ts
+│ ├── transactions.controller.ts
+│ ├── transactions.module.ts
+│ ├── transactions.schema.ts
+│ ├── transactions.service.spec.ts
+│ ├── transactions.service.ts
 │
 ├── config/
 │   └── database.config.ts
