@@ -17,4 +17,12 @@ export class RewardsController {
   async redeem(@Body() body: RedeemDto) {
     return this.rewardsService.redeemPoints(body.userId, body.points, body.rewardType);
   }
+
+  @Get('options')
+  getRewardOptions() {
+    return {
+      message: 'Available reward types',
+      options: ['cashback', 'voucher', 'gift'],
+    };
+  }
 }

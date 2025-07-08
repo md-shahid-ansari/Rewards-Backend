@@ -4,6 +4,7 @@ import { User } from './users.schema';
 import { Model, Document, Types } from 'mongoose';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { RewardsService } from '../rewards/rewards.service';
+import { TransactionsService } from '../transactions/transactions.service';
 
 type UserDocument = Document<unknown, any, User> & User & { _id: Types.ObjectId };
 
@@ -13,6 +14,7 @@ export class UsersService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
     private readonly rewardsService: RewardsService,
+    private readonly transactionsService: TransactionsService,
   ) {}
 
   async createUser(dto: CreateUserDto) {
@@ -38,5 +40,24 @@ export class UsersService {
 
   async getAllUsers() {
     return this.userModel.find();
+  }
+
+  async addPointsToUser(userId: string, points: number) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    await this.rewardsService.addPoints(userId, points);
+
+    await this.transactionsService.logTransaction({
+      userId,
+      category: 'admin',
+      pointsEarned: points,
+    });
+
+    return {
+      message: `Added ${points} points to user ${user.name}`,
+    };
   }
 }
