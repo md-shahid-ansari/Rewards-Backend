@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Reward } from './rewards.schema';
@@ -11,42 +16,84 @@ export class RewardsService {
     private readonly redemptionsService: RedemptionsService,
   ) {}
 
-  async getUserPoints(userId: string): Promise<number> {
-    const record = await this.rewardModel.findOne({ userId });
+  async getUserPoints(userId: string): Promise<{ message: string; points: number }> {
+    try {
+      const record = await this.rewardModel.findOne({ userId });
 
-    if (!record) {
-      throw new NotFoundException(`No reward record found for userId: ${userId}`);
+      if (!record) {
+        throw new NotFoundException({
+          message: `No reward record found for userId: ${userId}`,
+        });
+      }
+
+      return {
+        message: 'User reward points fetched successfully',
+        points: record.totalPoints,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+
+      throw new InternalServerErrorException({
+        message: 'Failed to fetch user reward points',
+        error: error.message,
+      });
     }
-
-    return record.totalPoints;
   }
 
-  async addPoints(userId: string, points: number): Promise<Reward> {
-    return this.rewardModel.findOneAndUpdate(
-      { userId },
-      { $inc: { totalPoints: points } },
-      { upsert: true, new: true }
-    );
+  async addPoints(userId: string, points: number): Promise<{ message: string; data: Reward }> {
+    try {
+      const updated = await this.rewardModel.findOneAndUpdate(
+        { userId },
+        { $inc: { totalPoints: points } },
+        { upsert: true, new: true },
+      );
+
+      return {
+        message: `Points added successfully to userId: ${userId}`,
+        data: updated,
+      };
+    } catch (error) {
+      throw new BadRequestException({
+        message: 'Failed to add reward points',
+        error: error.message,
+      });
+    }
   }
 
-  async redeemPoints(userId: string, points: number, rewardType: string) {
-    const reward = await this.rewardModel.findOne({ userId });
-    if (!reward || reward.totalPoints < points) {
-      throw new Error('Insufficient points');
+  async redeemPoints(
+    userId: string,
+    points: number,
+    rewardType: string,
+  ): Promise<{ message: string; remainingPoints: number }> {
+    try {
+      const reward = await this.rewardModel.findOne({ userId });
+
+      if (!reward || reward.totalPoints < points) {
+        throw new BadRequestException({
+          message: 'Insufficient points for redemption',
+        });
+      }
+
+      reward.totalPoints -= points;
+      await reward.save();
+
+      await this.redemptionsService.recordRedemption({
+        userId,
+        pointsRedeemed: points,
+        rewardType,
+      });
+
+      return {
+        message: 'Redemption successful',
+        remainingPoints: reward.totalPoints,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+
+      throw new InternalServerErrorException({
+        message: 'Redemption failed',
+        error: error.message,
+      });
     }
-
-    reward.totalPoints -= points;
-    await reward.save();
-
-    await this.redemptionsService.recordRedemption({
-      userId,
-      pointsRedeemed: points,
-      rewardType,
-    });
-
-    return {
-      message: 'Redemption successful',
-      remainingPoints: reward.totalPoints,
-    };
   }
 }
